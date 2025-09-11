@@ -406,21 +406,12 @@
       }
 
       #log::-webkit-scrollbar {
-        width: 8px;
+        width: 0px;
       }
 
-      #log::-webkit-scrollbar-track {
-        background: #374151;
-        border-radius: 4px;
-      }
-
-      #log::-webkit-scrollbar-thumb {
-        background: #6b7280;
-        border-radius: 4px;
-      }
-
-      #log::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af;
+      #log {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
       }
 
       @keyframes pulse {
