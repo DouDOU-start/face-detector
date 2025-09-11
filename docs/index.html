@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceDetector JS - 在线演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .demo-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            margin: 20px 0;
+            text-align: center;
+            min-height: 300px;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-container video {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 15px;
+        }
+
+        .placeholder {
+            color: #999;
+            font-size: 1.2em;
+        }
+
+        .status {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .status.ready {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .status.detecting {
+            background: #e8f5e8;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        .status.no-face {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #f57c00;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+        }
+
+        .github-link {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 25px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .github-link:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .demo-card {
+                padding: 20px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="https://github.com/DouDOU-start/face-detector" class="github-link" target="_blank">
+        📚 查看源码
+    </a>
+
+    <div class="header">
+        <h1>🎯 FaceDetector JS</h1>
+        <p>基于 TensorFlow.js 和 BlazeFace 的浏览器人脸检测库</p>
+    </div>
+
+    <div class="container">
+        <div class="demo-card">
+            <div class="controls">
+                <button class="btn btn-primary" onclick="startDemo()">🚀 启动检测</button>
+                <button class="btn btn-secondary" onclick="stopDemo()">⏹️ 停止检测</button>
+                <button class="btn btn-secondary" onclick="toggleCamera()">📷 切换摄像头</button>
+            </div>
+
+            <div id="camera-preview" class="video-container">
+                <div class="placeholder">点击"启动检测"开始体验</div>
+            </div>
+
+            <div id="status" class="status ready">📋 准备就绪 - 请点击启动检测按钮</div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="detectCount">0</div>
+                    <div class="stat-label">检测次数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="runTime">00:00</div>
+                    <div class="stat-label">运行时间</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="fps">0</div>
+                    <div class="stat-label">检测频率</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-card">
+            <h3>📖 使用说明</h3>
+            <ul style="margin-top: 15px; line-height: 1.8;">
+                <li>🔒 需要在 HTTPS 环境下运行（GitHub Pages 已启用）</li>
+                <li>📹 首次使用需要授权摄像头权限</li>
+                <li>👤 将人脸对准摄像头即可开始检测</li>
+                <li>📱 移动端可尝试切换前后摄像头</li>
+                <li>⚡ 检测完全在浏览器本地进行，保护隐私</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="../dist/face-detector.standalone.min.js"></script>
+    <script>
+        let detector;
+        let detectCount = 0;
+        let startTime;
+        let timerInterval;
+        let lastDetectTime = 0;
+        let fps = 0;
+
+        function initDetector() {
+            detector = new FaceDetector({
+                showVideo: true,
+                videoContainer: 'camera-preview',
+                interval: 100,
+                debug: false,
+                camera: { facingMode: 'user', width: 640, height: 480 }
+            })
+            .onInitialized(() => {
+                updateStatus('✅ 检测器初始化完成，开始检测...', 'detecting');
+            })
+            .onFaceDetected(() => {
+                detectCount++;
+                updateStatus(`👤 检测到人脸！(第 ${detectCount} 次)`, 'detecting');
+                document.getElementById('detectCount').textContent = detectCount;
+                updateFPS();
+            })
+            .onNoFace(() => {
+                updateStatus('👀 正在寻找人脸...', 'no-face');
+            })
+            .onError(err => {
+                updateStatus(`❌ 检测错误: ${err.message}`, 'error');
+                console.error('FaceDetector Error:', err);
+            });
+        }
+
+        async function startDemo() {
+            try {
+                updateStatus('🔄 正在初始化摄像头...', 'ready');
+                
+                if (!detector) {
+                    initDetector();
+                }
+                
+                await detector.initialize();
+                detector.startDetection();
+                startTimer();
+                
+                // 更新按钮状态
+                document.querySelector('.btn-primary').textContent = '🔄 检测中...';
+                document.querySelector('.btn-primary').disabled = true;
+                
+            } catch (error) {
+                updateStatus(`❌ 启动失败: ${error.message}`, 'error');
+                console.error('启动错误:', error);
+            }
+        }
+
+        function stopDemo() {
+            if (detector) {
+                detector.stopDetection();
+            }
+            stopTimer();
+            updateStatus('⏹️ 检测已停止', 'ready');
+            
+            // 重置按钮状态
+            document.querySelector('.btn-primary').textContent = '🚀 启动检测';
+            document.querySelector('.btn-primary').disabled = false;
+            
+            // 重置统计
+            fps = 0;
+            document.getElementById('fps').textContent = '0';
+        }
+
+        function toggleCamera() {
+            updateStatus('📷 切换摄像头功能开发中...', 'ready');
+            // TODO: 实现摄像头切换逻辑
+        }
+
+        function updateStatus(message, className) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${className}`;
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('runTime').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateFPS() {
+            const now = Date.now();
+            if (lastDetectTime > 0) {
+                const interval = (now - lastDetectTime) / 1000;
+                fps = Math.round(1 / interval * 10) / 10;
+                document.getElementById('fps').textContent = fps;
+            }
+            lastDetectTime = now;
+        }
+
+        // 页面加载完成后的提示
+        window.addEventListener('load', () => {
+            // 检查是否为 HTTPS
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                updateStatus('⚠️ 需要 HTTPS 环境才能使用摄像头功能', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

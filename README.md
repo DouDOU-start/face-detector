@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/DouDOU-start/face-detector?style=social)](https://github.com/DouDOU-start/face-detector)
 
+**🚀 [在线演示](https://doudou-start.github.io/face-detector/) | 📖 [API文档](#api-文档) | 💡 [示例代码](#快速开始)**
+
 ## 特性
 
 - **实时检测**：快速人脸检测，可配置检测间隔
