@@ -1,20 +1,33 @@
 # face-detector-lite
 
-基于 TensorFlow.js 与 BlazeFace 的轻量级浏览器人脸检测库，默认支持 CDN 自动加载，内置 Vue 3 组件封装。自 v1.2.0 起，npm 引入默认内置 BlazeFace 模型（离线，无需网络加载模型）。
+基于 TensorFlow.js 与 BlazeFace 的轻量级浏览器人脸检测库。支持纯离线 npm 使用（内置模型 + 本地依赖）、CDN 独立版、以及 Vue 3 组件封装。
 
 [![npm version](https://img.shields.io/npm/v/face-detector-lite.svg)](https://www.npmjs.com/package/face-detector-lite)
 [![npm downloads](https://img.shields.io/npm/dm/face-detector-lite.svg)](https://www.npmjs.com/package/face-detector-lite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/DouDOU-start/face-detector?style=social)](https://github.com/DouDOU-start/face-detector)
 
-快速入口：
+链接速览：
 
 - 在线演示： https://doudou-start.github.io/face-detector/
 - CDN 独立版：
   - jsDelivr: https://cdn.jsdelivr.net/npm/face-detector-lite/dist/face-detector.standalone.min.js
   - unpkg: https://unpkg.com/face-detector-lite/dist/face-detector.standalone.min.js
--
-  NPM： `npm i face-detector-lite`
+- NPM： `npm i face-detector-lite`
+
+目录
+- 特性
+- 安装与使用（CDN / ESM / NPM）
+- Vue 3 组件
+- API 文档
+  - 构造函数与配置
+  - 方法
+  - 事件回调
+- 离线模式说明
+- 性能与实践建议
+- 常见问题（FAQ）
+- 浏览器要求
+- 许可证
 
 ## 📸 演示预览
 
@@ -85,10 +98,11 @@ detector.startDetection();
 npm install face-detector-lite
 ```
 
-在应用中导入并使用：
+在应用中导入并使用（TypeScript 同样支持）：
 
 ```js
 import FaceDetector from 'face-detector-lite';
+// import type { FaceDetectorOptions } from 'face-detector-lite';
 
 const detector = new FaceDetector({
   showVideo: true,
@@ -102,7 +116,7 @@ await detector.initialize();
 detector.startDetection();
 ```
 
-#### 在 Vue 3 中使用组件
+## Vue 3 组件
 
 本库内置 Vue 3 组件封装，导入子路径 `face-detector-lite/vue` 即可：
 
@@ -115,7 +129,7 @@ import FaceDetectorPlugin from 'face-detector-lite/vue';
 app.use(FaceDetectorPlugin);
 ```
 
-模板中使用：
+组件模板示例：
 
 ```vue
 <template>
@@ -160,14 +174,17 @@ function onError(e) { console.error(e); }
 new FaceDetector(options)
 ```
 
-配置选项（部分）：
-- `showVideo?: boolean` - 是否显示摄像头画面（默认 false）
-- `videoContainer?: string | Element | null` - 视频容器（Vue 组件内部会自动设置）
-- `interval?: number` - 检测间隔毫秒数（默认 100）
-- `debug?: boolean` - 输出调试日志
-- `modelUrl?: string | IOHandler` - 自定义 BlazeFace 模型地址或 TFJS IOHandler
-- `libUrls?: { tf?: string; blazeface?: string }` - 自定义 TF.js/BlazeFace 加载地址（默认使用 jsDelivr CDN）
-- `camera?: { facingMode?: 'user' | 'environment'; width?: number; height?: number }` - 摄像头配置
+配置选项（核心）：
+- `showVideo?: boolean`（默认 `false`）：是否显示摄像头画面
+- `videoContainer?: string | Element | null`：视频容器（Vue 组件内部会自动设置）
+- `interval?: number`（默认 `100`）：检测间隔毫秒数
+- `debug?: boolean`：输出调试日志
+- `modelUrl?: string | IOHandler`：自定义 BlazeFace 模型地址或 TFJS IOHandler
+- `libUrls?: { tf?: string; blazeface?: string }`：自定义 TF.js/BlazeFace 加载地址
+  - NPM 场景：默认从本地依赖加载，不需要配置
+  - CDN 场景：如需替换默认地址可通过此项指定
+- `offlineOnly?: boolean`（默认 `true`）：离线模式；当本地依赖不可用时抛错，而不是回退网络
+- `camera?: { facingMode?: 'user' | 'environment'; width?: number; height?: number }`：摄像头配置
 
 方法：
 - `initialize(): Promise<boolean>` - 初始化并请求摄像头权限
@@ -182,6 +199,14 @@ new FaceDetector(options)
 - `onNoFace(fn)` - 未检测到人脸
 - `onError(fn)` - 出现错误
 
+## 离线模式说明
+
+- NPM 引入：
+  - 模型：包内置 `models/blazeface/embedded.js`，默认优先使用
+  - 依赖：通过 `require('@tensorflow/tfjs')` 与 `require('@tensorflow-models/blazeface')` 本地加载
+  - 回退策略：`offlineOnly=true`（默认）时，不会回退到网络；若设为 `false` 可使用 `libUrls` 或默认 CDN
+- CDN 独立版：单文件包含 TF.js + BlazeFace + 模型，天然离线
+
 ## 本地构建
 
 ```bash
@@ -193,12 +218,25 @@ npm run build
 - `dist/face-detector.min.js` - 压缩版本（需要 libs/ 目录）
 - `dist/face-detector.standalone.min.js` - 独立版本
 
+## 性能与实践建议
+
+- 适当提高 `interval`（如 120–200ms）降低 CPU 压力
+- 降低视频分辨率（如 `width: 640, height: 480`）以提升 FPS
+- 在空闲时调用 `detector.stopDetection()` 暂停检测，节省资源
+- 避免在低电量或移动网络环境下长时间运行摄像头
+
 ## 常见问题（FAQ）
 
 - 权限问题：必须在 HTTPS 或 localhost 环境访问，并允许浏览器摄像头权限。
 - iOS Safari：需确保使用前台标签页，并在用户手势后启动播放。
-- 离线/内网：将 `libUrls` 指向你自己的 TF.js 与 BlazeFace 地址，或使用本仓库 `libs/` 与独立版。
+- 离线/内网：NPM 场景默认离线；CDN 场景可将 `libUrls` 指向自有地址，或使用本仓库 `libs/` 与独立版。
 - SSR 使用：本库需在浏览器环境中调用（依赖 `window`/`navigator`）。
+  - 在 Nuxt/Next 等框架中，仅在客户端生命周期加载；或在路由层关闭 SSR 对应页面
+
+## 安全与隐私
+
+- 所有推理都在本地浏览器进行，图像不会上传到服务器
+- 请告知用户摄像头使用目的，并遵守相关法律法规与平台政策
 
 ## 浏览器要求
 
