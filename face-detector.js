@@ -30,17 +30,51 @@ async function ensureLibrariesLoaded(options = {}) {
     const defaultTfUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js';
     const defaultBlazeUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface/dist/blazeface.min.js';
 
-    const tfUrl = options?.libUrls?.tf || defaultTfUrl;
-    const blazeUrl = options?.libUrls?.blazeface || defaultBlazeUrl;
+    const tfUrl = options?.libUrls?.tf || null; // for npm usage we try local deps first
+    const blazeUrl = options?.libUrls?.blazeface || null;
     
     loadingPromise = (async () => {
         try {
-            // 按顺序加载库文件（优先使用自定义/默认CDN，失败时退回本地 libs/* 路径）
+            // 优先从本地 npm 依赖加载（完全离线）
             if (typeof tf === 'undefined') {
-                try { await loadScript(tfUrl); } catch (e) { await loadScript('libs/tf.min.js'); }
+                try {
+                    if (typeof require === 'function') {
+                        // CJS 环境
+                        var __tf = require('@tensorflow/tfjs');
+                        if (__tf) { (typeof globalThis !== 'undefined' ? globalThis : window).tf = __tf; }
+                    } else if (typeof import !== 'undefined') {
+                        // ESM 动态导入
+                        const mod = await import('@tensorflow/tfjs');
+                        (typeof globalThis !== 'undefined' ? globalThis : window).tf = mod;
+                    }
+                } catch (e) { /* ignore here, will fallback below */ }
             }
             if (typeof blazeface === 'undefined') {
-                try { await loadScript(blazeUrl); } catch (e) { await loadScript('libs/blazeface.js'); }
+                try {
+                    if (typeof require === 'function') {
+                        var __blaze = require('@tensorflow-models/blazeface');
+                        if (__blaze) { (typeof globalThis !== 'undefined' ? globalThis : window).blazeface = __blaze; }
+                    } else if (typeof import !== 'undefined') {
+                        const mod = await import('@tensorflow-models/blazeface');
+                        (typeof globalThis !== 'undefined' ? globalThis : window).blazeface = mod;
+                    }
+                } catch (e) { /* ignore here, will fallback below */ }
+            }
+
+            // 若仍未加载到，则尝试使用用户提供 libUrls；最后再回退到 CDN
+            if (typeof tf === 'undefined') {
+                if (tfUrl) {
+                    await loadScript(tfUrl);
+                } else {
+                    await loadScript(defaultTfUrl);
+                }
+            }
+            if (typeof blazeface === 'undefined') {
+                if (blazeUrl) {
+                    await loadScript(blazeUrl);
+                } else {
+                    await loadScript(defaultBlazeUrl);
+                }
             }
             
             // 等待TensorFlow.js准备就绪

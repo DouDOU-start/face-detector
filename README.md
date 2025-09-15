@@ -77,9 +77,9 @@ detector.startDetection();
 </script>
 ```
 
-### 方式三：作为 NPM 包
+### 方式三：作为 NPM 包（默认离线模型与本地依赖）
 
-安装（默认通过 CDN 自动加载 TF.js 与 BlazeFace；也可自行注入它们的脚本并关闭 CDN 选项）：
+安装后即离线运行：模型已内置，TensorFlow.js 与 BlazeFace 库从本地依赖加载（无需 CDN）。
 
 ```bash
 npm install face-detector-lite
@@ -92,11 +92,8 @@ import FaceDetector from 'face-detector-lite';
 
 const detector = new FaceDetector({
   showVideo: true,
-  // 可选：自定义第三方库地址（默认使用 jsDelivr）
-  libUrls: {
-    tf: 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js',
-    blazeface: 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface/dist/blazeface.min.js'
-  }
+  // 可选：自定义第三方库地址（默认不需要，已从本地依赖加载）
+  // libUrls: { tf: '/local/tf.min.js', blazeface: '/local/blazeface.min.js' }
 });
 
 await detector.initialize();
@@ -140,6 +137,7 @@ function onError(e) { console.error(e); }
 ```
 
 > 组件会在内部把视频渲染到自身容器中，默认在 mounted 后完成初始化并开始检测。可通过 `startOnMounted` 控制是否自动开始。
+> 使用 NPM 引入时，无需网络：模型与依赖均从本地加载。
 
 隐藏组件但保留功能（仅检测不显示视频）：
 
