@@ -300,7 +300,17 @@ class FaceDetector {
         if (this.options.modelUrl) {
             opts = { modelUrl: this.options.modelUrl };
         } else if (typeof window !== 'undefined' && window.__BLAZEFACE_EMBEDDED_IO_HANDLER__) {
+            // Standalone bundle path: global IOHandler injected by build
             opts = { modelUrl: window.__BLAZEFACE_EMBEDDED_IO_HANDLER__ };
+        } else {
+            // NPM path: try to require embedded IOHandler module (bundlers will inline it)
+            try {
+                // eslint-disable-next-line global-require, import/no-dynamic-require
+                const embedded = (typeof require === 'function') ? require('./models/blazeface/embedded.js') : null;
+                if (embedded && typeof embedded.load === 'function') {
+                    opts = { modelUrl: embedded };
+                }
+            } catch (_) { /* ignore */ }
         }
         return await blazeface.load(opts);
     }

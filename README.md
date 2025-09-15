@@ -1,6 +1,6 @@
 # face-detector-lite
 
-基于 TensorFlow.js 与 BlazeFace 的轻量级浏览器人脸检测库，默认支持 CDN 自动加载，内置 Vue 3 组件封装。
+基于 TensorFlow.js 与 BlazeFace 的轻量级浏览器人脸检测库，默认支持 CDN 自动加载，内置 Vue 3 组件封装。自 v1.2.0 起，npm 引入默认内置 BlazeFace 模型（离线，无需网络加载模型）。
 
 [![npm version](https://img.shields.io/npm/v/face-detector-lite.svg)](https://www.npmjs.com/package/face-detector-lite)
 [![npm downloads](https://img.shields.io/npm/dm/face-detector-lite.svg)](https://www.npmjs.com/package/face-detector-lite)
