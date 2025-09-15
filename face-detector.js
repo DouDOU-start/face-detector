@@ -6,41 +6,45 @@
  * @author AI Assistant
  */
 
-// 动态加载必要的库文件
+// 动态加载必要的库文件（支持CDN与自定义地址）
 let librariesLoaded = false;
 let loadingPromise = null;
 
 function loadScript(src) {
     return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-        }
-        
+        if (!src) { reject(new Error('Invalid script src')); return; }
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
         const script = document.createElement('script');
         script.src = src;
+        script.async = true;
         script.onload = resolve;
-        script.onerror = reject;
+        script.onerror = () => reject(new Error('Failed to load script: ' + src));
         document.head.appendChild(script);
     });
 }
 
-async function ensureLibrariesLoaded() {
+async function ensureLibrariesLoaded(options = {}) {
     if (librariesLoaded) return;
     if (loadingPromise) return loadingPromise;
+
+    const defaultTfUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js';
+    const defaultBlazeUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface/dist/blazeface.min.js';
+
+    const tfUrl = options?.libUrls?.tf || defaultTfUrl;
+    const blazeUrl = options?.libUrls?.blazeface || defaultBlazeUrl;
     
     loadingPromise = (async () => {
         try {
-            // 按顺序加载库文件
+            // 按顺序加载库文件（优先使用自定义/默认CDN，失败时退回本地 libs/* 路径）
             if (typeof tf === 'undefined') {
-                await loadScript('libs/tf.min.js');
+                try { await loadScript(tfUrl); } catch (e) { await loadScript('libs/tf.min.js'); }
             }
             if (typeof blazeface === 'undefined') {
-                await loadScript('libs/blazeface.js');
+                try { await loadScript(blazeUrl); } catch (e) { await loadScript('libs/blazeface.js'); }
             }
             
             // 等待TensorFlow.js准备就绪
-            if (typeof tf !== 'undefined') {
+            if (typeof tf !== 'undefined' && typeof tf.ready === 'function') {
                 await tf.ready();
             }
             
@@ -73,6 +77,9 @@ class FaceDetector {
             // 模型地址（可选）：指向 blazeface 的 model.json，本地优先
             // 例如：'./models/blazeface/model.json'
             modelUrl: options.modelUrl || null,
+            // 可选：第三方库地址（CDN或自定义路径）
+            // { tf: '...', blazeface: '...' }
+            libUrls: options.libUrls || {},
             // 相机配置
             camera: {
                 facingMode: options.camera?.facingMode || 'user',
@@ -235,7 +242,7 @@ class FaceDetector {
      */
     async loadModels() {
         // 首先确保库文件已加载
-        await ensureLibrariesLoaded();
+        await ensureLibrariesLoaded(this.options);
         
         if (typeof tf === 'undefined' || typeof blazeface === 'undefined') {
             throw new Error('TensorFlow.js或BlazeFace库未加载');

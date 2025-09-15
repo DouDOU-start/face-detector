@@ -1,11 +1,20 @@
-# FaceDetector JS
+# face-detector-lite
 
-基于 TensorFlow.js 和 BlazeFace 的轻量级浏览器人脸检测库。
+基于 TensorFlow.js 与 BlazeFace 的轻量级浏览器人脸检测库，默认支持 CDN 自动加载，内置 Vue 3 组件封装。
 
+[![npm version](https://img.shields.io/npm/v/face-detector-lite.svg)](https://www.npmjs.com/package/face-detector-lite)
+[![npm downloads](https://img.shields.io/npm/dm/face-detector-lite.svg)](https://www.npmjs.com/package/face-detector-lite)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/DouDOU-start/face-detector?style=social)](https://github.com/DouDOU-start/face-detector)
 
-**🚀 [在线演示](https://doudou-start.github.io/face-detector/) | 📖 [API文档](#api-文档) | 💡 [示例代码](#快速开始)**
+快速入口：
+
+- 在线演示： https://doudou-start.github.io/face-detector/
+- CDN 独立版：
+  - jsDelivr: https://cdn.jsdelivr.net/npm/face-detector-lite/dist/face-detector.standalone.min.js
+  - unpkg: https://unpkg.com/face-detector-lite/dist/face-detector.standalone.min.js
+-
+  NPM： `npm i face-detector-lite`
 
 ## 📸 演示预览
 
@@ -33,11 +42,15 @@
 - 🎨 **视觉反馈效果** - 检测边框变色（绿色=有人脸，红色=无人脸）
 - 📱 **移动端适配** - 响应式设计，支持手机和平板访问
 
-## 快速开始
+## 安装与使用
+
+### 方式一：CDN 独立版（开箱即用）
 
 ```html
-<!-- 引入独立版本 -->
-<script src="dist/face-detector.standalone.min.js"></script>
+<!-- jsDelivr（独立版，已内置 TF.js 与 BlazeFace） -->
+<script src="https://cdn.jsdelivr.net/npm/face-detector-lite/dist/face-detector.standalone.min.js"></script>
+<!-- 或：unpkg -->
+<!-- <script src="https://unpkg.com/face-detector-lite/dist/face-detector.standalone.min.js"></script> -->
 
 <script>
 const detector = new FaceDetector({ showVideo: true })
@@ -49,6 +62,85 @@ detector.startDetection();
 </script>
 ```
 
+### 方式二：CDN ESM（按需导入）
+
+如需用 ESM 方式按需导入（不包含第三方库），可通过 jsDelivr 的 +esm：
+
+```html
+<script type="module">
+  import FaceDetector from 'https://cdn.jsdelivr.net/npm/face-detector-lite/+esm';
+  const detector = new FaceDetector({ showVideo: true });
+  await detector.initialize();
+  detector.startDetection();
+  // 如需离线或指定第三方库，请传入 libUrls 覆盖 CDN 地址
+  // new FaceDetector({ libUrls: { tf: '...', blazeface: '...' } })
+</script>
+```
+
+### 方式三：作为 NPM 包
+
+安装（默认通过 CDN 自动加载 TF.js 与 BlazeFace；也可自行注入它们的脚本并关闭 CDN 选项）：
+
+```bash
+npm install face-detector-lite
+```
+
+在应用中导入并使用：
+
+```js
+import FaceDetector from 'face-detector-lite';
+
+const detector = new FaceDetector({
+  showVideo: true,
+  // 可选：自定义第三方库地址（默认使用 jsDelivr）
+  libUrls: {
+    tf: 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js',
+    blazeface: 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface/dist/blazeface.min.js'
+  }
+});
+
+await detector.initialize();
+detector.startDetection();
+```
+
+#### 在 Vue 3 中使用组件
+
+本库内置 Vue 3 组件封装，导入子路径 `face-detector-lite/vue` 即可：
+
+```js
+// 方式一：按需局部注册
+import { FaceDetectorView } from 'face-detector-lite/vue';
+
+// 方式二：作为插件全局注册
+import FaceDetectorPlugin from 'face-detector-lite/vue';
+app.use(FaceDetectorPlugin);
+```
+
+模板中使用：
+
+```vue
+<template>
+  <FaceDetectorView
+    class="preview"
+    :interval="120"
+    :camera="{ facingMode: 'user', width: 640, height: 480 }"
+    @initialized="onReady"
+    @detected="onDetected"
+    @no-face="onNoFace"
+    @error="onError"
+  />
+</template>
+
+<script setup>
+function onReady() { console.log('ready'); }
+function onDetected() { console.log('face'); }
+function onNoFace() { console.log('no face'); }
+function onError(e) { console.error(e); }
+</script>
+```
+
+> 组件会在内部把视频渲染到自身容器中，默认在 mounted 后完成初始化并开始检测。可通过 `startOnMounted` 控制是否自动开始。
+
 ## API 文档
 
 ### 构造函数
@@ -56,25 +148,29 @@ detector.startDetection();
 new FaceDetector(options)
 ```
 
-**配置选项：**
-- `showVideo: boolean` - 显示摄像头画面（默认：false）
-- `videoContainer: string|Element` - 视频容器元素
-- `interval: number` - 检测间隔毫秒数（默认：100）
-- `camera: object` - 摄像头设置（facingMode, width, height）
+配置选项（部分）：
+- `showVideo?: boolean` - 是否显示摄像头画面（默认 false）
+- `videoContainer?: string | Element | null` - 视频容器（Vue 组件内部会自动设置）
+- `interval?: number` - 检测间隔毫秒数（默认 100）
+- `debug?: boolean` - 输出调试日志
+- `modelUrl?: string | IOHandler` - 自定义 BlazeFace 模型地址或 TFJS IOHandler
+- `libUrls?: { tf?: string; blazeface?: string }` - 自定义 TF.js/BlazeFace 加载地址（默认使用 jsDelivr CDN）
+- `camera?: { facingMode?: 'user' | 'environment'; width?: number; height?: number }` - 摄像头配置
 
-### 方法
-- `initialize()` - 初始化检测器并请求摄像头权限
-- `startDetection()` - 开始人脸检测
-- `stopDetection()` - 停止检测
-- `destroy()` - 清理资源
+方法：
+- `initialize(): Promise<boolean>` - 初始化并请求摄像头权限
+- `startDetection(): void` - 开始检测
+- `stopDetection(): void` - 停止检测
+- `destroy(): void` - 清理资源
+- `detectFace(): Promise<boolean>` - 立即执行一次检测
 
-### 事件回调
+事件回调：
 - `onInitialized(fn)` - 初始化完成时触发
-- `onFaceDetected(fn)` - 检测到人脸时触发
-- `onNoFace(fn)` - 未检测到人脸时触发
-- `onError(fn)` - 出现错误时触发
+- `onFaceDetected(fn)` - 检测到人脸
+- `onNoFace(fn)` - 未检测到人脸
+- `onError(fn)` - 出现错误
 
-## 构建
+## 本地构建
 
 ```bash
 npm install -D terser javascript-obfuscator
@@ -84,6 +180,13 @@ npm run build
 生成文件：
 - `dist/face-detector.min.js` - 压缩版本（需要 libs/ 目录）
 - `dist/face-detector.standalone.min.js` - 独立版本
+
+## 常见问题（FAQ）
+
+- 权限问题：必须在 HTTPS 或 localhost 环境访问，并允许浏览器摄像头权限。
+- iOS Safari：需确保使用前台标签页，并在用户手势后启动播放。
+- 离线/内网：将 `libUrls` 指向你自己的 TF.js 与 BlazeFace 地址，或使用本仓库 `libs/` 与独立版。
+- SSR 使用：本库需在浏览器环境中调用（依赖 `window`/`navigator`）。
 
 ## 浏览器要求
 
