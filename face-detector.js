@@ -39,13 +39,9 @@ async function ensureLibrariesLoaded(options = {}) {
             if (typeof tf === 'undefined') {
                 try {
                     if (typeof require === 'function') {
-                        // CJS 环境
+                        // CommonJS/Node bundler environments
                         var __tf = require('@tensorflow/tfjs');
                         if (__tf) { (typeof globalThis !== 'undefined' ? globalThis : window).tf = __tf; }
-                    } else if (typeof import !== 'undefined') {
-                        // ESM 动态导入
-                        const mod = await import('@tensorflow/tfjs');
-                        (typeof globalThis !== 'undefined' ? globalThis : window).tf = mod;
                     }
                 } catch (e) { /* ignore here, will fallback below */ }
             }
@@ -54,9 +50,6 @@ async function ensureLibrariesLoaded(options = {}) {
                     if (typeof require === 'function') {
                         var __blaze = require('@tensorflow-models/blazeface');
                         if (__blaze) { (typeof globalThis !== 'undefined' ? globalThis : window).blazeface = __blaze; }
-                    } else if (typeof import !== 'undefined') {
-                        const mod = await import('@tensorflow-models/blazeface');
-                        (typeof globalThis !== 'undefined' ? globalThis : window).blazeface = mod;
                     }
                 } catch (e) { /* ignore here, will fallback below */ }
             }
