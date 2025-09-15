@@ -61,20 +61,18 @@ async function ensureLibrariesLoaded(options = {}) {
                 } catch (e) { /* ignore here, will fallback below */ }
             }
 
-            // 若仍未加载到，则尝试使用用户提供 libUrls；最后再回退到 CDN
+            // 若仍未加载到，则尝试使用用户提供 libUrls；最后再回退到 CDN（仅当 offlineOnly=false）
             if (typeof tf === 'undefined') {
-                if (tfUrl) {
-                    await loadScript(tfUrl);
-                } else {
-                    await loadScript(defaultTfUrl);
+                if (options.offlineOnly) {
+                    throw new Error('TensorFlow.js 未加载且处于离线模式（offlineOnly=true）');
                 }
+                if (tfUrl) { await loadScript(tfUrl); } else { await loadScript(defaultTfUrl); }
             }
             if (typeof blazeface === 'undefined') {
-                if (blazeUrl) {
-                    await loadScript(blazeUrl);
-                } else {
-                    await loadScript(defaultBlazeUrl);
+                if (options.offlineOnly) {
+                    throw new Error('BlazeFace 未加载且处于离线模式（offlineOnly=true）');
                 }
+                if (blazeUrl) { await loadScript(blazeUrl); } else { await loadScript(defaultBlazeUrl); }
             }
             
             // 等待TensorFlow.js准备就绪
@@ -114,6 +112,8 @@ class FaceDetector {
             // 可选：第三方库地址（CDN或自定义路径）
             // { tf: '...', blazeface: '...' }
             libUrls: options.libUrls || {},
+            // 仅离线：true 时不回退到 CDN
+            offlineOnly: options.offlineOnly !== undefined ? !!options.offlineOnly : true,
             // 相机配置
             camera: {
                 facingMode: options.camera?.facingMode || 'user',

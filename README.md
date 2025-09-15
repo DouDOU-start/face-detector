@@ -79,7 +79,7 @@ detector.startDetection();
 
 ### 方式三：作为 NPM 包（默认离线模型与本地依赖）
 
-安装后即离线运行：模型已内置，TensorFlow.js 与 BlazeFace 库从本地依赖加载（无需 CDN）。
+安装后即离线运行：模型已内置，TensorFlow.js 与 BlazeFace 库从本地依赖加载（无需 CDN）。默认 `offlineOnly=true`，若本地依赖缺失将报错而不会回退到网络。
 
 ```bash
 npm install face-detector-lite
@@ -93,7 +93,9 @@ import FaceDetector from 'face-detector-lite';
 const detector = new FaceDetector({
   showVideo: true,
   // 可选：自定义第三方库地址（默认不需要，已从本地依赖加载）
-  // libUrls: { tf: '/local/tf.min.js', blazeface: '/local/blazeface.min.js' }
+  // libUrls: { tf: '/local/tf.min.js', blazeface: '/local/blazeface.min.js' },
+  // 可选：允许回退到网络（默认不允许）
+  // offlineOnly: false
 });
 
 await detector.initialize();
