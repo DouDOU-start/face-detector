@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.1
+- Package metadata: add `unpkg`/`jsdelivr` fields
+- Docs polish and README structure improvements
+- Offline defaults retained (`offlineOnly=true`), minor fixes for build stability
+
 ## 1.2.0
 - Embed BlazeFace model for offline npm usage (no network needed)
 - Prefer local npm deps for `@tensorflow/tfjs` and `@tensorflow-models/blazeface`
