@@ -6,6 +6,8 @@ export interface FaceDetectorViewProps extends Omit<FaceDetectorOptions, 'videoC
   startOnMounted?: boolean;
   /** Show the video stream in the component */
   showVideo?: boolean;
+  /** Render container when showVideo=false */
+  renderContainer?: boolean;
   /** Inline style for container element */
   style?: string | Record<string, string>;
   /** Class for container element */

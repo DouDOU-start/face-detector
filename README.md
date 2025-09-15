@@ -141,6 +141,18 @@ function onError(e) { console.error(e); }
 
 > 组件会在内部把视频渲染到自身容器中，默认在 mounted 后完成初始化并开始检测。可通过 `startOnMounted` 控制是否自动开始。
 
+隐藏组件但保留功能（仅检测不显示视频）：
+
+```vue
+<FaceDetectorView :show-video="false" />
+```
+
+完全不渲染任何 DOM（仅功能，不占位）：
+
+```vue
+<FaceDetectorView :show-video="false" :render-container="false" />
+```
+
 ## API 文档
 
 ### 构造函数

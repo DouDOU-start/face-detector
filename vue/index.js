@@ -11,6 +11,8 @@ export const FaceDetectorView = defineComponent({
     // subset of FaceDetectorOptions (videoContainer handled internally)
     startOnMounted: { type: Boolean, default: true },
     showVideo: { type: Boolean, default: true },
+    // when showVideo=false, choose whether to render container element
+    renderContainer: { type: Boolean, default: false },
     interval: { type: Number, default: 100 },
     debug: { type: Boolean, default: false },
     modelUrl: { type: [String, Object], default: null },
@@ -53,7 +55,10 @@ export const FaceDetectorView = defineComponent({
 
     expose({ start, stop, destroy, get detector() { return detector; } });
 
-    return () => h('div', { ref: containerRef, style: props.style, class: props.class });
+    return () => {
+      if (!props.showVideo && !props.renderContainer) return null;
+      return h('div', { ref: containerRef, style: props.style, class: props.class });
+    };
   }
 });
 
