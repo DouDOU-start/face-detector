@@ -116,6 +116,24 @@ await detector.initialize();
 detector.startDetection();
 ```
 
+> 在 Vue 3 / Vite 等打包环境中，ESM 入口会自动指向打包内置的 `libs/` 目录与嵌入式模型，无需访问 CDN；`npm install` 后即可完全离线运行。
+
+若在无打包器的环境中使用，可直接使用本包提供的离线资源：
+
+```html
+<script src="/node_modules/face-detector-lite/dist/face-detector.min.js"></script>
+<script>
+  const detector = new FaceDetector({
+    libUrls: {
+      tf: '/node_modules/face-detector-lite/libs/tf.min.js',
+      blazeface: '/node_modules/face-detector-lite/libs/blazeface.js'
+    },
+    modelUrl: '/node_modules/face-detector-lite/models/blazeface/model.json'
+  });
+  detector.initialize().then(() => detector.startDetection());
+</script>
+```
+
 ## Vue 3 组件
 
 本库内置 Vue 3 组件封装，导入子路径 `face-detector-lite/vue` 即可：
@@ -153,7 +171,7 @@ function onError(e) { console.error(e); }
 ```
 
 > 组件会在内部把视频渲染到自身容器中，默认在 mounted 后完成初始化并开始检测。可通过 `startOnMounted` 控制是否自动开始。
-> 使用 NPM 引入时，无需网络：模型与依赖均从本地加载。
+> 使用 NPM 引入时，无需网络：模型与依赖均由打包内置的 `libs/` 与嵌入式模型加载。
 
 隐藏组件但保留功能（仅检测不显示视频）：
 
@@ -184,6 +202,7 @@ new FaceDetector(options)
   - NPM 场景：默认从本地依赖加载，不需要配置
   - CDN 场景：如需替换默认地址可通过此项指定
 - `offlineOnly?: boolean`（默认 `true`）：离线模式；当本地依赖不可用时抛错，而不是回退网络
+- `skipDynamicImports?: boolean`（默认 `false`，ESM 入口自动启用）：跳过 npm 依赖的动态导入，直接按照 `libUrls` 加载
 - `camera?: { facingMode?: 'user' | 'environment'; width?: number; height?: number }`：摄像头配置
 
 方法：
@@ -203,7 +222,7 @@ new FaceDetector(options)
 
 - NPM 引入：
   - 模型：包内置 `models/blazeface/embedded.js`，默认优先使用
-  - 依赖：通过 `require('@tensorflow/tfjs')` 与 `require('@tensorflow-models/blazeface')` 本地加载
+  - 依赖：ESM 入口自动引用包内 `libs/` 资源；在 Node/CJS 环境仍可通过本地安装的 `@tensorflow/tfjs` 与 `@tensorflow-models/blazeface` 加载
   - 回退策略：`offlineOnly=true`（默认）时，不会回退到网络；若设为 `false` 可使用 `libUrls` 或默认 CDN
 - CDN 独立版：单文件包含 TF.js + BlazeFace + 模型，天然离线
 
@@ -229,7 +248,7 @@ npm run build
 
 - 权限问题：必须在 HTTPS 或 localhost 环境访问，并允许浏览器摄像头权限。
 - iOS Safari：需确保使用前台标签页，并在用户手势后启动播放。
-- 离线/内网：NPM 场景默认离线；CDN 场景可将 `libUrls` 指向自有地址，或使用本仓库 `libs/` 与独立版。
+- 离线/内网：NPM 场景默认离线；CDN 场景可将 `libUrls` 指向自有地址，或使用本包内置的 `libs/`、`models/` 与独立版。
 - SSR 使用：本库需在浏览器环境中调用（依赖 `window`/`navigator`）。
   - 在 Nuxt/Next 等框架中，仅在客户端生命周期加载；或在路由层关闭 SSR 对应页面
 

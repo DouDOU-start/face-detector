@@ -14,25 +14,30 @@
   "license": "MIT",
   "sideEffects": false,
   "main": "face-detector.js",
+  "module": "esm/index.js",
   "types": "types/index.d.ts",
   "unpkg": "dist/face-detector.standalone.min.js",
   "jsdelivr": "dist/face-detector.standalone.min.js",
   "exports": {
     ".": {
+      "import": "./esm/index.js",
       "require": "./face-detector.js",
-      "default": "./face-detector.js",
+      "default": "./esm/index.js",
       "types": "./types/index.d.ts"
     },
     "./vue": {
-      "import": "./vue/index.js",
-      "default": "./vue/index.js",
+      "import": "./esm/vue.js",
+      "require": "./vue/index.js",
+      "default": "./esm/vue.js",
       "types": "./types/vue/index.d.ts"
     }
   },
   "files": [
     "face-detector.js",
     "dist/",
-    "models/blazeface/embedded.js",
+    "libs/",
+    "esm/",
+    "models/",
     "types/",
     "vue/",
     "LICENSE",

@@ -21,6 +21,7 @@ export interface FaceDetectorOptions {
   modelUrl?: string | any; // TFJS IOHandler or URL string
   libUrls?: FaceDetectorLibUrls;
   offlineOnly?: boolean;
+  skipDynamicImports?: boolean;
   camera?: CameraOptions;
 }
 
