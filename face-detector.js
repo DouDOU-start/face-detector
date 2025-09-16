@@ -39,8 +39,8 @@ async function ensureLibrariesLoaded(options = {}) {
     if (librariesLoaded) return;
     if (loadingPromise) return loadingPromise;
 
-    const defaultTfUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js';
-    const defaultBlazeUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface/dist/blazeface.min.js';
+    const defaultTfUrl = './libs/tf.min.js';
+    const defaultBlazeUrl = './libs/blazeface.js';
 
     const defaults = getGlobalDefaults();
     const mergedLibUrls = {
@@ -164,6 +164,7 @@ class FaceDetector {
         this.video = null;
         this.canvas = null;
         this.ctx = null;
+        this.hiddenContainer = null;
         this.model = null;
         this.detectionMode = 'blazeface';
         this.callbacks = {
@@ -219,9 +220,8 @@ class FaceDetector {
         if (this.options.showVideo) {
             this.setupVideoDisplay();
         } else {
-            // 隐藏视频元素
-            this.video.style.display = 'none';
-            this.canvas.style.display = 'none';
+            // 即使不显示视频，也要将video元素添加到DOM中以确保摄像头工作
+            this.setupHiddenVideo();
         }
 
         // 请求相机权限
@@ -267,6 +267,54 @@ class FaceDetector {
         `;
 
         container.appendChild(this.video);
+    }
+
+    /**
+     * 设置隐藏的视频元素（确保摄像头正常工作）
+     */
+    setupHiddenVideo() {
+        if (!this.hiddenContainer) {
+            this.hiddenContainer = document.createElement('div');
+            document.body.appendChild(this.hiddenContainer);
+        }
+
+        this.hiddenContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: ${this.options.camera.width}px;
+            height: ${this.options.camera.height}px;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: -1;
+        `;
+
+        this.video.style.cssText = `
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            pointer-events: none;
+        `;
+
+        this.canvas.style.cssText = `
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+        `;
+
+        if (!this.hiddenContainer.contains(this.video)) {
+            this.hiddenContainer.appendChild(this.video);
+        }
+        if (!this.hiddenContainer.contains(this.canvas)) {
+            this.hiddenContainer.appendChild(this.canvas);
+        }
     }
 
     /**
@@ -452,7 +500,24 @@ class FaceDetector {
      * @returns {boolean} 是否检测到人脸
      */
     async detectFace() {
-        const predictions = await this.model.estimateFaces(this.video, false);
+        if (!this.video || !this.canvas || !this.ctx) {
+            throw new Error('视频或画布未初始化');
+        }
+
+        const { videoWidth, videoHeight } = this.video;
+        if (!videoWidth || !videoHeight) {
+            return false;
+        }
+
+        if (this.canvas.width !== videoWidth || this.canvas.height !== videoHeight) {
+            this.canvas.width = videoWidth;
+            this.canvas.height = videoHeight;
+        }
+
+        // 将当前帧绘制到离屏画布，确保隐藏视频时也能获取像素数据
+        this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+        const predictions = await this.model.estimateFaces(this.canvas, false);
         return predictions.length > 0;
     }
 
@@ -504,13 +569,22 @@ class FaceDetector {
         if (this.video && this.video.parentNode) {
             this.video.parentNode.removeChild(this.video);
         }
-        
+
+        if (this.canvas && this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
+        }
+
+        if (this.hiddenContainer && this.hiddenContainer.parentNode) {
+            this.hiddenContainer.parentNode.removeChild(this.hiddenContainer);
+        }
+
         this.video = null;
         this.canvas = null;
         this.ctx = null;
+        this.hiddenContainer = null;
         this.model = null;
         this.isInitialized = false;
-        
+
         this.log('检测器已销毁');
     }
 }

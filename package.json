@@ -1,6 +1,6 @@
 {
   "name": "face-detector-lite",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": false,
   "description": "Lightweight browser face detector (TF.js + BlazeFace) with Vue 3 support",
   "keywords": [
@@ -20,16 +20,16 @@
   "jsdelivr": "dist/face-detector.standalone.min.js",
   "exports": {
     ".": {
+      "types": "./types/index.d.ts",
       "import": "./esm/index.js",
       "require": "./face-detector.js",
-      "default": "./esm/index.js",
-      "types": "./types/index.d.ts"
+      "default": "./esm/index.js"
     },
     "./vue": {
+      "types": "./types/vue/index.d.ts",
       "import": "./esm/vue.js",
       "require": "./vue/index.js",
-      "default": "./esm/vue.js",
-      "types": "./types/vue/index.d.ts"
+      "default": "./esm/vue.js"
     }
   },
   "files": [
@@ -58,10 +58,6 @@
     "vue": {
       "optional": true
     }
-  },
-  "dependencies": {
-    "@tensorflow-models/blazeface": "^0.0.7",
-    "@tensorflow/tfjs": "^4.14.0"
   },
   "devDependencies": {
     "javascript-obfuscator": "^4.1.1",

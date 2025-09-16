@@ -1,6 +1,6 @@
 // Vue 3 wrapper for face-detector-js
 import { defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue';
-import FD from '../face-detector.js';
+import FD from '../esm/index.js';
 
 // Interop for CJS default export
 const FaceDetector = FD && FD.default ? FD.default : FD;
@@ -10,9 +10,9 @@ export const FaceDetectorView = defineComponent({
   props: {
     // subset of FaceDetectorOptions (videoContainer handled internally)
     startOnMounted: { type: Boolean, default: true },
-    showVideo: { type: Boolean, default: true },
+    showVideo: { type: Boolean, default: false },
     // when showVideo=false, choose whether to render container element
-    renderContainer: { type: Boolean, default: false },
+    renderContainer: { type: Boolean, default: true },
     interval: { type: Number, default: 100 },
     debug: { type: Boolean, default: false },
     modelUrl: { type: [String, Object], default: null },
@@ -28,29 +28,40 @@ export const FaceDetectorView = defineComponent({
     let detector = null;
 
     const init = async () => {
-      detector = new FaceDetector({
-        showVideo: props.showVideo,
-        videoContainer: containerRef.value,
-        interval: props.interval,
-        debug: props.debug,
-        modelUrl: props.modelUrl,
-        libUrls: props.libUrls,
-        camera: props.camera
-      })
-        .onInitialized(() => emit('initialized'))
-        .onFaceDetected(() => emit('detected'))
-        .onNoFace(() => emit('no-face'))
-        .onError((e) => emit('error', e));
+      try {
+        detector = new FaceDetector({
+          showVideo: props.showVideo,
+          videoContainer: containerRef.value,
+          interval: props.interval,
+          debug: props.debug,
+          modelUrl: props.modelUrl,
+          libUrls: props.libUrls,
+          camera: props.camera
+        })
+          .onInitialized(() => emit('initialized'))
+          .onFaceDetected(() => emit('detected'))
+          .onNoFace(() => emit('no-face'))
+          .onError((e) => emit('error', e));
 
-      await detector.initialize();
-      if (props.startOnMounted) detector.startDetection();
+        await detector.initialize();
+        if (props.startOnMounted) detector.startDetection();
+      } catch (error) {
+        console.error('Error in init:', error);
+        emit('error', error);
+        throw error;
+      }
     };
 
     const start = () => detector && detector.startDetection();
     const stop = () => detector && detector.stopDetection();
     const destroy = () => { if (detector) detector.destroy(); detector = null; };
 
-    onMounted(() => { init().catch((e) => emit('error', e)); });
+    onMounted(() => {
+      init().catch((e) => {
+        console.error('FaceDetector initialization failed:', e);
+        emit('error', e);
+      });
+    });
     onBeforeUnmount(() => destroy());
 
     expose({ start, stop, destroy, get detector() { return detector; } });

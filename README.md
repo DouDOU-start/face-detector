@@ -78,13 +78,30 @@ import { FaceDetectorView } from 'face-detector-lite/vue';
 <template>
   <FaceDetectorView
     class="preview"
-    :interval="120"
-    :camera="{ facingMode: 'user', width: 640, height: 480 }"
     @initialized="onReady"
     @detected="onDetected"
     @no-face="onNoFace"
+    @error="onError"
   />
 </template>
+```
+
+> 组件默认会隐藏视频 (`show-video=false`)、渲染一个占位容器 (`render-container=true`)，并在挂载完成后自动开始检测 (`start-on-mounted=true`)。
+
+如需自定义行为，可传入对应属性：
+
+```vue
+<FaceDetectorView
+  :show-video="true"
+  :render-container="false"
+  :start-on-mounted="false"
+  :interval="150"
+  :camera="{ facingMode: 'environment', width: 1280, height: 720 }"
+  @initialized="onReady"
+  @detected="onDetected"
+  @no-face="onNoFace"
+  @error="onError"
+/>
 ```
 
 ## API 概览
@@ -129,4 +146,3 @@ npm run build
 
 ## 许可证
 MIT License © [DouDOU-start](https://github.com/DouDOU-start)
-\r\n
