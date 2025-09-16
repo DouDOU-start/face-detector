@@ -6,6 +6,18 @@
  * @author AI Assistant
  */
 
+const GLOBAL_SCOPE = (typeof globalThis !== 'undefined')
+    ? globalThis
+    : (typeof window !== 'undefined' ? window : {});
+
+function getGlobalDefaults() {
+    try {
+        return GLOBAL_SCOPE.__FACE_DETECTOR_DEFAULTS || {};
+    } catch (_) {
+        return {};
+    }
+}
+
 // 动态加载必要的库文件（支持CDN与自定义地址）
 let librariesLoaded = false;
 let loadingPromise = null;
@@ -30,42 +42,58 @@ async function ensureLibrariesLoaded(options = {}) {
     const defaultTfUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js';
     const defaultBlazeUrl = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface/dist/blazeface.min.js';
 
-    const tfUrl = options?.libUrls?.tf || null; // for npm usage we try local deps first
-    const blazeUrl = options?.libUrls?.blazeface || null;
+    const defaults = getGlobalDefaults();
+    const mergedLibUrls = {
+        ...(defaults.libUrls || {}),
+        ...(options?.libUrls || {})
+    };
+    const tfUrl = mergedLibUrls.tf || null; // optional local/hosted override
+    const blazeUrl = mergedLibUrls.blazeface || mergedLibUrls.blaze || null;
+    const offlineOnly = options.offlineOnly !== undefined
+        ? !!options.offlineOnly
+        : (typeof defaults.offlineOnly === 'boolean' ? defaults.offlineOnly : true);
+    const skipDynamicImports = options.skipDynamicImports !== undefined
+        ? !!options.skipDynamicImports
+        : !!defaults.skipDynamicImports;
+
+    options.libUrls = mergedLibUrls;
+    options.offlineOnly = offlineOnly;
+    options.skipDynamicImports = skipDynamicImports;
     
     loadingPromise = (async () => {
         try {
-            // 优先从本地 npm 依赖加载（完全离线）
-            if (typeof tf === 'undefined') {
+            // 优先从本地 npm 依赖加载（支持 ESM/CJS bundler）
+            if (!skipDynamicImports && typeof tf === 'undefined') {
                 try {
-                    if (typeof require === 'function') {
-                        // CommonJS/Node bundler environments
-                        var __tf = require('@tensorflow/tfjs');
-                        if (__tf) { (typeof globalThis !== 'undefined' ? globalThis : window).tf = __tf; }
-                    }
-                } catch (e) { /* ignore here, will fallback below */ }
+                    const __tf = await import('@tensorflow/tfjs');
+                    if (__tf) { (typeof globalThis !== 'undefined' ? globalThis : window).tf = __tf; }
+                } catch (_) { /* ignore here, will fallback below */ }
             }
-            if (typeof blazeface === 'undefined') {
+            if (!skipDynamicImports && typeof blazeface === 'undefined') {
                 try {
-                    if (typeof require === 'function') {
-                        var __blaze = require('@tensorflow-models/blazeface');
-                        if (__blaze) { (typeof globalThis !== 'undefined' ? globalThis : window).blazeface = __blaze; }
-                    }
-                } catch (e) { /* ignore here, will fallback below */ }
+                    const __blaze = await import('@tensorflow-models/blazeface');
+                    if (__blaze) { (typeof globalThis !== 'undefined' ? globalThis : window).blazeface = __blaze; }
+                } catch (_) { /* ignore here, will fallback below */ }
             }
 
-            // 若仍未加载到，则尝试使用用户提供 libUrls；最后再回退到 CDN（仅当 offlineOnly=false）
+            // 若仍未加载到，则尝试使用用户提供的 libUrls；最后才回退到 CDN（当 offlineOnly=false 时）
             if (typeof tf === 'undefined') {
-                if (options.offlineOnly) {
+                if (tfUrl) {
+                    await loadScript(tfUrl);
+                } else if (offlineOnly) {
                     throw new Error('TensorFlow.js 未加载且处于离线模式（offlineOnly=true）');
+                } else {
+                    await loadScript(defaultTfUrl);
                 }
-                if (tfUrl) { await loadScript(tfUrl); } else { await loadScript(defaultTfUrl); }
             }
             if (typeof blazeface === 'undefined') {
-                if (options.offlineOnly) {
+                if (blazeUrl) {
+                    await loadScript(blazeUrl);
+                } else if (offlineOnly) {
                     throw new Error('BlazeFace 未加载且处于离线模式（offlineOnly=true）');
+                } else {
+                    await loadScript(defaultBlazeUrl);
                 }
-                if (blazeUrl) { await loadScript(blazeUrl); } else { await loadScript(defaultBlazeUrl); }
             }
             
             // 等待TensorFlow.js准备就绪
@@ -90,9 +118,21 @@ let modelLoadPromise = null;
 
 class FaceDetector {
     constructor(options = {}) {
+        const defaults = getGlobalDefaults();
+        const mergedLibUrls = {
+            ...(defaults.libUrls || {}),
+            ...(options.libUrls || {})
+        };
+        const offlineOnly = options.offlineOnly !== undefined
+            ? !!options.offlineOnly
+            : (typeof defaults.offlineOnly === 'boolean' ? defaults.offlineOnly : true);
+        const skipDynamicImports = options.skipDynamicImports !== undefined
+            ? !!options.skipDynamicImports
+            : !!defaults.skipDynamicImports;
+
         this.options = {
             // 是否显示视频流（默认隐藏）
-            showVideo: options.showVideo || false,
+            showVideo: options.showVideo !== undefined ? !!options.showVideo : false,
             // 视频容器元素ID或DOM元素
             videoContainer: options.videoContainer || null,
             // 检测间隔（毫秒）
@@ -101,12 +141,14 @@ class FaceDetector {
             debug: options.debug || false,
             // 模型地址（可选）：指向 blazeface 的 model.json，本地优先
             // 例如：'./models/blazeface/model.json'
-            modelUrl: options.modelUrl || null,
+            modelUrl: options.modelUrl || defaults.modelUrl || null,
             // 可选：第三方库地址（CDN或自定义路径）
             // { tf: '...', blazeface: '...' }
-            libUrls: options.libUrls || {},
+            libUrls: mergedLibUrls,
             // 仅离线：true 时不回退到 CDN
-            offlineOnly: options.offlineOnly !== undefined ? !!options.offlineOnly : true,
+            offlineOnly,
+            // 是否跳过动态 import，直接使用 libUrls
+            skipDynamicImports,
             // 相机配置
             camera: {
                 facingMode: options.camera?.facingMode || 'user',
@@ -114,6 +156,8 @@ class FaceDetector {
                 height: options.camera?.height || 480
             }
         };
+
+        this.embeddedModelOverride = defaults.embeddedModel || null;
 
         this.isInitialized = false;
         this.isDetecting = false;
@@ -326,14 +370,16 @@ class FaceDetector {
         let opts = undefined;
         if (this.options.modelUrl) {
             opts = { modelUrl: this.options.modelUrl };
+        } else if (this.embeddedModelOverride) {
+            opts = { modelUrl: this.embeddedModelOverride };
         } else if (typeof window !== 'undefined' && window.__BLAZEFACE_EMBEDDED_IO_HANDLER__) {
             // Standalone bundle path: global IOHandler injected by build
             opts = { modelUrl: window.__BLAZEFACE_EMBEDDED_IO_HANDLER__ };
         } else {
-            // NPM path: try to require embedded IOHandler module (bundlers will inline it)
+            // NPM path: try to import embedded IOHandler module (bundlers will inline it)
             try {
-                // eslint-disable-next-line global-require, import/no-dynamic-require
-                const embedded = (typeof require === 'function') ? require('./models/blazeface/embedded.js') : null;
+                const embeddedModule = await import('./models/blazeface/embedded.js');
+                const embedded = embeddedModule.default || embeddedModule;
                 if (embedded && typeof embedded.load === 'function') {
                     opts = { modelUrl: embedded };
                 }
